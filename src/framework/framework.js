@@ -5,19 +5,25 @@ const specialElements = {
 	if: {
 		requiredAttributes: ['condition'],
 		fn: handleIf,
+		createFn: () => document.createElement('div'),
+		renderChildren: true,
 	},
 	for: {
 		requiredAttributes: ['each'],
 		fn: handleFor,
+		createFn: () => document.createElement('ul'),
+		renderChildren: false,
 	},
 	suspend: {
 		requiredAttributes: ['loading'],
 		fn: handleSuspend,
+		createFn: () => document.createElement('div'),
+		renderChildren: false,
 	},
 };
 
 export function html(strings, ...values) {
-	let fnMap = {};
+	const fnMap = {};
 	const id = crypto.randomUUID();
 	const h = strings.reduce((acc, string, i) => {
 		if (typeof values[i] === 'function') fnMap[`${id}_${i}`] = values[i];
@@ -31,24 +37,24 @@ export function html(strings, ...values) {
 			type: element.nodeName.toLowerCase(),
 			attributes: {},
 			updateAbleAttributes: {},
-			updateAbleContent: false,
-			hasFunction: null,
+			updateAbleContent: [],
+			hasFunction: [],
 			children: [],
 		};
 
 		for (const attr of element.attributes) {
-			if (attr.name.startsWith('on:')) result.hasFunction = attr.name.split(':')[1];
-			else if (attr.value.startsWith(id)) result.updateAbleAttributes[attr.name] = getIndex(attr.value, id);
+			if (attr.name.startsWith('on:')) result.hasFunction.push(attr.name.split(':')[1]);
+			else if (attr.value.startsWith(id)) result.updateAbleAttributes[attr.name] = attr.value;
 			result.attributes[attr.name] = attr.value;
 		}
 
-		for (const childNode of element.childNodes) {
-			if (childNode.nodeType === 1) result.children.push(parseElement(childNode));
-			else if (childNode.nodeType === 3 && childNode.nodeValue.trim() !== '') {
+		for (const child of element.childNodes) {
+			if (child.nodeType === 1) result.children.push(parseElement(child));
+			else if (child.nodeType === 3 && child.nodeValue.trim() !== '') {
 				result.children.push({
 					type: 'text',
-					updateAbleContent: childNode.textContent.includes(id),
-					content: childNode.nodeValue.trim(),
+					updateAbleContent: child.nodeValue.match(new RegExp(`${id}_\\d+`, 'g')),
+					content: child.nodeValue.trim(),
 				});
 			}
 		}
@@ -67,55 +73,68 @@ export function html(strings, ...values) {
 		});
 	}
 
-	const resultElement = createDOM(result, values, id);
+	const context = { result, values, id, fnMap };
+	const resultElement = createDOM(context);
 	return resultElement;
 }
 
-function createDOM(parsed, values, id) {
-	if (parsed.type === 'text' && !parsed.updateAbleContent) return document.createTextNode(parsed.content);
+function createDOM(context) {
+	const { result } = context;
+
+	if (result.type === 'text' && !result.updateAbleContent) return document.createTextNode(result.content);
 
 	let element;
-	if (parsed.type === 'text') element = document.createTextNode(parsed.content);
-	else if (parsed.type === 'for') element = document.createElement('ul');
-	else if (parsed.type === 'if' || parsed.type === 'suspend') element = document.createElement('div');
-	else element = document.createElement(parsed.type);
+	if (specialElements[result.type]) element = specialElements[result.type].createFn();
+	else element = document.createElement(result.type);
 
-	if (Object.keys(parsed?.attributes || {}).length > 0) handleAttributes(parsed, element, values);
+	if (Object.keys(result?.attributes || {}).length > 0) handleAttributes({ ...context, element });
 
-	if (parsed.type === 'if') handleIf(parsed, element, values);
-	else if (parsed.type === 'for') handleFor(parsed, element, values, id);
-	else if (parsed.type === 'suspend') handleSuspend(parsed, element, values, id);
+	if (specialElements[result.type]) specialElements[result.type].fn({ ...context, element });
 
-	if (parsed.updateAbleContent) handleUpdateableContent(parsed, element, values, id);
+	if (result.updateAbleContent?.length > 0) handleUpdateableContent({ ...context, element });
 
-	if (parsed.hasFunction) handleHasFunction(parsed, element, values, id);
+	if (result.hasFunction?.length > 0) handleHasFunction({ ...context, element });
 
-	for (const child of parsed?.children || []) {
-		if (parsed.type === 'for' || parsed.type === 'suspend') continue;
-		const childElement = createDOM(child, values, id);
+	for (const child of result?.children || []) {
+		if (specialElements[result.type] && !specialElements[result.type]?.renderChildren) continue;
+		const childElement = createDOM({ ...context, result: child });
 		element.appendChild(childElement);
 	}
 
 	return element;
 }
 
-function handleIf(parsed, element, values) {
-	const index = parsed.updateAbleAttributes['condition'];
+function handleAttributes({ result, element, fnMap }) {
+	for (const [key, value] of Object.entries(result?.attributes || {})) {
+		if (result.updateAbleAttributes[key]) {
+			const idKey = result.updateAbleAttributes[key];
+			effect(() => {
+				const value = fnMap[idKey]();
+				if (key === 'value') element.value = value;
+				if (result.type === 'for' && key === 'each') return;
+				element.setAttribute(key, value);
+			});
+		} else element.setAttribute(key, value);
+	}
+}
+
+function handleIf({ result, element, fnMap }) {
+	const idKey = result.updateAbleAttributes['condition'];
 	const display = element.style.display;
 	effect(() => {
-		values[index]()
+		fnMap[idKey]()
 			? ((element.style.display = display || ''), (element.style.position = 'static'))
 			: ((element.style.display = 'none'), (element.style.position = 'absolute'));
 	});
 }
 
-function handleFor(parsed, element, values, id) {
-	const childFuncIndex = getIndex(parsed.children[0].content, id);
-	const childFunc = values[childFuncIndex];
-	const arrayIndex = parsed.updateAbleAttributes['each'];
+function handleFor({ result, element, fnMap }) {
+	const childFuncIdKey = result.children[0].content;
+	const childFunc = fnMap[childFuncIdKey];
+	const idKey = result.updateAbleAttributes['each'];
 	let currentArray = [];
 	effect(() => {
-		const array = values[arrayIndex]();
+		const array = fnMap[idKey]();
 		const changes = compareArrays(currentArray, array);
 
 		for (const change of changes) {
@@ -129,80 +148,56 @@ function handleFor(parsed, element, values, id) {
 	});
 }
 
-function handleSuspend(parsed, element, values, id) {
-	const { loading, fallback } = parsed.attributes;
+function handleSuspend(suspendContext) {
+	const { result, element, id, fnMap } = suspendContext;
+
+	const { loading, fallback } = result.attributes;
 
 	if (loading && !loading.includes(id))
 		throw new Error('Must pass in a function that returns the loading state. e.g. () => true');
 	if (fallback && !fallback.includes(id))
 		throw new Error('Must pass in a function that returns the fallback element. e.g. () => html`<div>Loading...</div>');
 
-	const loadingIndex = getIndex(loading, id);
-	const fallbackIndex = getIndex(fallback, id);
-
 	let fallbackNode;
-	if (fallbackIndex) fallbackNode = values[fallbackIndex]();
+	if (fallback.includes(id)) fallbackNode = fnMap[fallback]();
 	else fallbackNode = fallback;
 
 	if (typeof fallbackNode === 'string') fallbackNode = document.createTextNode(fallbackNode);
 
 	effect(() => {
-		const isLoading = typeof loading.includes(id) ? values[loadingIndex]() : loading === 'false' ? false : true;
+		const isLoading = typeof loading.includes(id) ? fnMap[loading]() : loading === 'false' ? false : true;
 
 		if (isLoading) element.appendChild(fallbackNode);
 		else {
 			if (element.contains(fallbackNode)) element.removeChild(fallbackNode);
 
-			for (const child of parsed.children) {
-				const childElement = createDOM(child, values, id);
+			for (const child of result.children) {
+				const childElement = createDOM({ ...suspendContext, result: child });
 				element.appendChild(childElement);
 			}
 		}
 	});
 }
 
-function handleUpdateableContent(parsed, element, values, id) {
-	const startText = parsed.content.split(`${id}_`)[0];
-	const match = /\b(?<id>[a-f0-9-]+)_(?<number>\d+)\b/i.exec(parsed.content);
-	const index = match.groups.number;
-	const afterText = parsed.content.split(`${id}_${index}`)[1];
+function handleUpdateableContent({ result, element, fnMap }) {
+	const updateAbleContent = result?.updateAbleContent || [];
 	effect(() => {
-		element.textContent = (startText ?? '') + values[index]() + (afterText ?? '');
+		element.textContent = result.content.replace(new RegExp(`${updateAbleContent.join('|')}`, 'g'), (match) => {
+			return fnMap[match]();
+		});
 	});
 }
 
-function handleHasFunction(parsed, element, values, id) {
-	element.addEventListener(parsed.hasFunction, (e) => {
-		const attributes = parsed.attributes;
-		for (const key of Object.keys(attributes)) {
-			if (!key.startsWith('on:')) continue;
-			values[getIndex(element.getAttribute(key), id)](e);
-		}
-	});
-}
-
-function handleAttributes(parsed, element, values) {
-	for (const [key, value] of Object.entries(parsed?.attributes || {})) {
-		if (parsed.updateAbleAttributes[key]) {
-			const index = parsed.updateAbleAttributes[key];
-			effect(() => {
-				const value = values[index]();
-				if (key === 'value') element.value = value;
-				if (parsed.type === 'for' && key === 'each') return;
-				element.setAttribute(key, values[index]());
-			});
-		}
-		element.setAttribute(key, value);
+function handleHasFunction({ result, element, fnMap }) {
+	for (const event of result?.hasFunction || []) {
+		const idKey = result.attributes[`on:${event}`];
+		element.addEventListener(event, (e) => fnMap[idKey](e));
 	}
 }
 
 let onMountCallbacks = new Set();
 export function onMount(cb) {
 	onMountCallbacks.add(cb);
-}
-
-function getIndex(idString, id) {
-	return idString.replace(`${id}_`, '');
 }
 
 function isDOMElement(variable) {
