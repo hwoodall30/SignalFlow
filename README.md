@@ -105,28 +105,33 @@ To get a local copy up and running follow these simple example steps.
             -   Effects are side effect callbacks that run when a tracked Signal changes.
         -   Derived Values or Memos
             -   Derived Values are values that are derived from other signals.
-                -   Ex.
                 ```js
+                // Example of a derived value
                 const [signal, setSignal] = signal(5);
                 const derived = () => signal() * 2;
                 console.log(derived()); // Even if the signal changes, the derived value will be up to date as the signal * 2
                 ```
             -   Memos are derived values that are memoized..
 -   `html` Function
+
     -   Here you can pass in a string template literal to the `html` function. You can use your signals in the template literal to make the string dynamic.
     -   **_Note: In order for a value to be reactive, the value passed must be a function._**
     -   Special Elements
+
         -   For
+
             -   This is a special element used to loop over arrays. It takes an `each` attribute which is the array to loop over. And the child is is a function that is called for each item in the array.
-                -   Ex.
                 ```js
+                // Example of <For> special element
                 const [array, setArray] = signal([1, 2, 3]);
                 html` <For class="list" each=${array}> ${(item) => html`<li>${item}</li>`} </For> `;
                 ```
+
         -   If
+
             -   This is a special element that will only render if the `condition` attribute is `true`
-                -   Ex.
                 ```js
+                // Example of <If> special element
                 const [condition, setCondition] = signal(true);
                 html`
                 	<If condition=${condition}>
@@ -134,10 +139,12 @@ To get a local copy up and running follow these simple example steps.
                 	</If>
                 `;
                 ```
+
         -   Suspend
+
             -   This is a special element that will display the `fallback` until the `loading` attribute is `false`
-                -   Ex.
                 ```js
+                // Example of <Suspend> special element
                 const [loading, setLoading] = signal(true);
                 html`
                 	<Suspend loading="${condition}" fallback="${() => html`<p>Loading...</p>`}">
@@ -155,6 +162,7 @@ To get a local copy up and running follow these simple example steps.
 -   [x] Add Changelog
 -   [ ] Add better array diffing for For component
 -   [ ] Add more "Special Components"
+-   [ ] More detailed docs
 
 See the [open issues](https://github.com/hwoodall30/SignalFlow/issues) for a full list of proposed features (and known issues).
 
@@ -183,7 +191,7 @@ Don't forget to give the project a star! Thanks again!
 
 ## Contact
 
-Hunter Woodall - [@your_twitter](https://twitter.com/hwoodall30) - hwoodall30@gmail.com
+Hunter Woodall - [@hwoodall30 on X(Twitter)](https://twitter.com/hwoodall30) - hwoodall30@gmail.com
 
 Project Link: [https://github.com/hwoodall30/SignalFlow](https://github.com/hwoodall30/SignalFlow)
 
@@ -193,7 +201,7 @@ Project Link: [https://github.com/hwoodall30/SignalFlow](https://github.com/hwoo
 
 ## Acknowledgments
 
-Use this space to list resources you find helpful and would like to give credit to. I've included a few of my favorites to kick things off!
+Special Thanks to these awesome articles!
 
 -   [Solid.js](https://www.solidjs.com/)
 -   [Building a Reactive Library from Scratch](https://dev.to/ryansolid/building-a-reactive-library-from-scratch-1i0p)
