@@ -86,3 +86,7 @@ export function cloneDeep(value, cloned = new WeakMap()) {
 
 	return value;
 }
+
+export function isDOMElement(variable) {
+	return variable instanceof Element || variable instanceof Node;
+}

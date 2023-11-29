@@ -1,4 +1,4 @@
-import { cloneDeep, compareArrays } from '../helpers/helpers';
+import { cloneDeep, compareArrays, isDOMElement } from '../helpers/helpers';
 import { effect } from '../signals/signal';
 
 const specialElements = {
@@ -32,50 +32,46 @@ export function html(strings, ...values) {
 
 	const doc = new DOMParser().parseFromString(h, 'text/html');
 
-	function parseElement(element) {
-		const result = {
-			type: element.nodeName.toLowerCase(),
-			attributes: {},
-			updateAbleAttributes: {},
-			updateAbleContent: [],
-			hasFunction: [],
-			children: [],
-		};
+	const parseElementContext = { element: doc.body.firstChild, id, fnMap };
+	const result = parseElement(parseElementContext);
 
-		for (const attr of element.attributes) {
-			if (attr.name.startsWith('on:')) result.hasFunction.push(attr.name.split(':')[1]);
-			else if (attr.value.startsWith(id)) result.updateAbleAttributes[attr.name] = attr.value;
-			result.attributes[attr.name] = attr.value;
-		}
-
-		for (const child of element.childNodes) {
-			if (child.nodeType === 1) result.children.push(parseElement(child));
-			else if (child.nodeType === 3 && child.nodeValue.trim() !== '') {
-				result.children.push({
-					type: 'text',
-					updateAbleContent: child.nodeValue.match(new RegExp(`${id}_\\d+`, 'g')),
-					content: child.nodeValue.trim(),
-				});
-			}
-		}
-
-		return result;
-	}
-
-	const result = parseElement(doc.body.firstChild);
-
-	if (onMountCallbacks?.size > 0) {
-		Promise.resolve().then(() => {
-			for (const cb of onMountCallbacks) {
-				cb();
-				onMountCallbacks.delete(cb);
-			}
-		});
-	}
-
-	const context = { result, values, id, fnMap };
-	const resultElement = createDOM(context);
+	const createDOMContext = { result, values, id, fnMap };
+	const resultElement = createDOM(createDOMContext);
 	return resultElement;
+}
+
+function parseElement(context) {
+	if (context.element.nodeName.toLowerCase() === 'svg') throw new Error('SVG elements are not supported by the html function');
+
+	const { element, id } = context;
+
+	const result = {
+		type: element.nodeName.toLowerCase(),
+		attributes: {},
+		updateAbleAttributes: {},
+		updateAbleContent: [],
+		hasFunction: [],
+		children: [],
+	};
+
+	for (const attr of element.attributes) {
+		if (attr.name.startsWith('on:')) result.hasFunction.push(attr.name.split(':')[1]);
+		else if (attr.value.startsWith(id)) result.updateAbleAttributes[attr.name] = attr.value;
+		result.attributes[attr.name] = attr.value;
+	}
+
+	for (const child of element.childNodes) {
+		if (child.nodeType === 1) result.children.push(parseElement({ ...context, element: child }));
+		else if (child.nodeType === 3 && child.nodeValue.trim() !== '') {
+			result.children.push({
+				type: 'text',
+				updateAbleContent: child.nodeValue.match(new RegExp(`${id}_\\d+`, 'g')),
+				content: child.nodeValue.trim(),
+			});
+		}
+	}
+
+	return result;
 }
 
 function createDOM(context) {
@@ -104,7 +100,9 @@ function createDOM(context) {
 	return element;
 }
 
-function handleAttributes({ result, element, fnMap }) {
+function handleAttributes(context) {
+	const { result, element, fnMap } = context;
+
 	for (const [key, value] of Object.entries(result?.attributes || {})) {
 		if (result.updateAbleAttributes[key]) {
 			const idKey = result.updateAbleAttributes[key];
@@ -118,7 +116,9 @@ function handleAttributes({ result, element, fnMap }) {
 	}
 }
 
-function handleIf({ result, element, fnMap }) {
+function handleIf(context) {
+	const { result, element, fnMap } = context;
+
 	const idKey = result.updateAbleAttributes['condition'];
 	const display = element.style.display;
 	effect(() => {
@@ -128,7 +128,9 @@ function handleIf({ result, element, fnMap }) {
 	});
 }
 
-function handleFor({ result, element, fnMap }) {
+function handleFor(context) {
+	const { result, element, fnMap } = context;
+
 	const childFuncIdKey = result.children[0].content;
 	const childFunc = fnMap[childFuncIdKey];
 	const idKey = result.updateAbleAttributes['each'];
@@ -148,31 +150,35 @@ function handleFor({ result, element, fnMap }) {
 	});
 }
 
-function handleSuspend(suspendContext) {
-	const { result, element, id, fnMap } = suspendContext;
+function handleSuspend(context) {
+	const { result, element, id, fnMap } = context;
 
 	const { loading, fallback } = result.attributes;
-
 	if (loading && !loading.includes(id))
-		throw new Error('Must pass in a function that returns the loading state. e.g. () => true');
+		throw new Error('Must pass in a function that returns the loading state (true or false). e.g. () => true');
 	if (fallback && !fallback.includes(id))
 		throw new Error('Must pass in a function that returns the fallback element. e.g. () => html`<div>Loading...</div>');
 
-	let fallbackNode;
-	if (fallback.includes(id)) fallbackNode = fnMap[fallback]();
-	else fallbackNode = fallback;
+	const fallbackReturn = fnMap[fallback]();
 
-	if (typeof fallbackNode === 'string') fallbackNode = document.createTextNode(fallbackNode);
+	let fallbackNode;
+	if (isDOMElement(fallbackReturn)) fallbackNode = fallbackReturn;
+	else {
+		fallbackNode = document.createElement('div');
+		fallbackNode.innerHTML = fallbackReturn;
+	}
+
+	element.removeAttribute('fallback');
 
 	effect(() => {
 		const isLoading = typeof loading.includes(id) ? fnMap[loading]() : loading === 'false' ? false : true;
-
+		element.innerHTML = '';
 		if (isLoading) element.appendChild(fallbackNode);
 		else {
 			if (element.contains(fallbackNode)) element.removeChild(fallbackNode);
 
 			for (const child of result.children) {
-				const childElement = createDOM({ ...suspendContext, result: child });
+				const childElement = createDOM({ ...context, result: child });
 				element.appendChild(childElement);
 			}
 		}
@@ -193,13 +199,4 @@ function handleHasFunction({ result, element, fnMap }) {
 		const idKey = result.attributes[`on:${event}`];
 		element.addEventListener(event, (e) => fnMap[idKey](e));
 	}
-}
-
-let onMountCallbacks = new Set();
-export function onMount(cb) {
-	onMountCallbacks.add(cb);
-}
-
-function isDOMElement(variable) {
-	return variable instanceof Element || variable instanceof Node;
 }
