@@ -1,13 +1,6 @@
-<a name="readme-top"></a>
+<!-- README TOP ANCHOR -->
 
-<!-- PROJECT SHIELDS -->
-<!--
-*** I'm using markdown "reference style" links for readability.
-*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
-*** See the bottom of this document for the declaration of the reference variables
-*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
-*** https://www.markdownguide.org/basic-syntax/#reference-style-links
--->
+<a name="readme-top"></a>
 
 <!-- PROJECT LOGO -->
 <br />
@@ -16,18 +9,13 @@
     <img src="./public/SignalFlowLogo.png" alt="Logo" width="200">
   </a>
 
-  <!-- <h3 align="center">Signal Flow</h3> -->
-
   <p align="center">
-    A very small lightweight templating library that uses Signals for fine-grained updating.
+    A very small, lightweight templating library that uses Signals for fine-grained updating.
     <br />
     <a href="https://github.com/hwoodall30/SignalFlow"><strong>Explore the code »</strong></a>
     <br />
-    <br />
-    <a href="https://github.com/hwoodall30/SignalFlow">View Demo</a>
-    ·
-    <a href="https://github.com/hwoodall30/SignalFlow/issues">Report Bug</a>
-    ·
+    <a href="https://github.com/hwoodall30/SignalFlow">View Demo</a> ·
+    <a href="https://github.com/hwoodall30/SignalFlow/issues">Report Bug</a> ·
     <a href="https://github.com/hwoodall30/SignalFlow/issues">Request Feature</a>
   </p>
 </div>
@@ -36,14 +24,12 @@
 <details>
   <summary>Table of Contents</summary>
   <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
+    <li><a href="#about-the-project">About The Project</a>
       <ul>
         <li><a href="#built-with">Built With</a></li>
       </ul>
     </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
+    <li><a href="#getting-started">Getting Started</a>
       <ul>
         <li><a href="#installation">Installation</a></li>
       </ul>
@@ -60,21 +46,20 @@
 
 ## About The Project
 
-There are a lot of great JavaScript frameworks. Solid, Svelte, React, Vue, Qwik, etc. are all fantastic choices and are actually recommended for large and complex projects. But each of these framework require a build step in order to natively run on the web.
+There are many fantastic JavaScript frameworks, such as Solid, Svelte, React, Vue, Qwik, etc., which are recommended for large and complex projects. However, each of these frameworks requires a build step to run natively on the web.
 
-SignalFlow takes a different approach by using signals to embed fine-grained updating into your UI at runtime.
+SignalFlow differs by using signals to embed fine-grained updating into your UI at runtime.
 
 Here's why:
 
--   What if you were working on a site that had no framework installed and wanted to add a new widget to it? If you wanted to use a JavaScript framework such as React to do this, you would have to also include all of React's dependencies in order to render which can be heavy. This is exactly what SignalFlow aims to solve.
+-   Project without a framework may want to include a widget without adding heavy dependencies.
+-   SignalFlow provides a lightweight solution for this use case.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Built With
 
-This project was built with no external libraries or dependencies.
-
--   [![JavaScript][JavaScriptImage]][JavaScriptUrl]
+-   Vanilla JavaScript ([Learn more][JavaScriptUrl])
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -82,12 +67,9 @@ This project was built with no external libraries or dependencies.
 
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
-
 ### Installation
 
--   npm
+1. Install SignalFlow via npm:
     ```sh
     npm install signal-flow
     ```
@@ -96,62 +78,53 @@ To get a local copy up and running follow these simple example steps.
 
 ## Usage
 
--   Signals
-    -   Signals are the core principle that powers SignalFlow.
-    -   Signals are composed of:
-        -   Signals
-            -   Signals are the reactive values that change.
-        -   Effects
-            -   Effects are side effect callbacks that run when a tracked Signal changes.
-        -   Derived Values or Memos
-            -   Derived Values are values that are derived from other signals.
-                ```js
-                // Example of a derived value
-                const [signal, setSignal] = signal(5);
-                const derived = () => signal() * 2;
-                console.log(derived()); // Even if the signal changes, the derived value will be up to date as the signal * 2
-                ```
-            -   Memos are derived values that are memoized..
--   `html` Function
+-   **Signals**:
 
-    -   Here you can pass in a string template literal to the `html` function. You can use your signals in the template literal to make the string dynamic.
-    -   **_Note: In order for a value to be reactive, the value passed must be a function._**
-    -   Special Elements
+    -   Reactive values known as _Signals_
+    -   _Effects_ (callbacks for when Signals change)
+    -   _Derived_ Values or _Memos_ (values based on other Signals)
+        ```js
+        const [signal, setSignal] = signal(5);
+        const derived = () => signal() * 2;
+        console.log(derived()); // Outputs signal * 2
+        ```
 
-        -   For
+-   **`html` Function**:
 
-            -   This is a special element used to loop over arrays. It takes an `each` attribute which is the array to loop over. And the child is is a function that is called for each item in the array.
-                ```js
-                // Example of <For> special element
-                const [array, setArray] = signal([1, 2, 3]);
-                html` <For class="list" each=${array}> ${(item) => html`<li>${item}</li>`} </For> `;
-                ```
+    -   Render dynamic templates with Signals embedded in a string literal.
+    -   To make values reactive, pass them as functions.
 
-        -   If
-
-            -   This is a special element that will only render if the `condition` attribute is `true`
-                ```js
-                // Example of <If> special element
-                const [condition, setCondition] = signal(true);
-                html`
-                	<If condition=${condition}>
-                		<p>Condition is true</p>
-                	</If>
-                `;
-                ```
-
-        -   Suspend
-
-            -   This is a special element that will display the `fallback` until the `loading` attribute is `false`
-                ```js
-                // Example of <Suspend> special element
-                const [loading, setLoading] = signal(true);
-                html`
-                	<Suspend loading="${condition}" fallback="${() => html`<p>Loading...</p>`}">
-                		<p>Condition is true</p>
-                	</Suspend>
-                `;
-                ```
+-   **Special Elements**:
+    -   _For_: Iterates over arrays <br>
+        _Attributes_:
+        -   `each` - **type**: `array` - The array to iterate over
+        ```js
+        const [array, setArray] = signal([1, 2, 3]);
+        html` <For class="list" each=${array}> ${(item) => html`<li>${item}</li>`} </For> `;
+        ```
+    -   _If_: Conditionally render content <br>
+        _Attributes_:
+        -   `condition` - **type**: `function => boolean` - The condition to evaluate. If `true` the content will be rendered
+        ```js
+        const [condition, setCondition] = signal(true);
+        html`
+        	<If condition=${condition}>
+        		<p>Condition is true</p>
+        	</If>
+        `;
+        ```
+    -   _Suspend_: Provide a fallback UI during loading <br>
+        _Attributes_:
+        -   `loading` - **type**: `function => boolean` - The condition to evaluate. If `true` the fallback will be rendered, otherwise the child content will be rendered.
+        -   `fallback` - **type**: `function => htmlElement | string` - The fallback UI.
+        ```js
+        const [loading, setLoading] = signal(true);
+        html`
+        	<Suspend loading="${condition}" fallback="${() => html`<p>Loading...</p>`}">
+        		<content />
+        	</Suspend>
+        `;
+        ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -160,11 +133,11 @@ To get a local copy up and running follow these simple example steps.
 ## Roadmap
 
 -   [x] Add Changelog
--   [ ] Add better array diffing for For component
--   [ ] Add more "Special Components"
--   [ ] More detailed docs
+-   [ ] Improve array diffing for For component
+-   [ ] Implement additional Special Components
+-   [ ] Expand and enhance documentation
 
-See the [open issues](https://github.com/hwoodall30/SignalFlow/issues) for a full list of proposed features (and known issues).
+Visit the [issue tracker](https://github.com/hwoodall30/SignalFlow/issues) for future feature plans and current issues.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -172,10 +145,7 @@ See the [open issues](https://github.com/hwoodall30/SignalFlow/issues) for a ful
 
 ## Contributing
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
+We encourage community contributions. Here's how you can contribute:
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
@@ -183,17 +153,17 @@ Don't forget to give the project a star! Thanks again!
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+Don't forget to star the project and tag any issues with "enhancement". Your support is much appreciated!
 
-<!-- LICENSE -->
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- CONTACT -->
 
 ## Contact
 
-Hunter Woodall - [@hwoodall30 on X(Twitter)](https://twitter.com/hwoodall30) - hwoodall30@gmail.com
+Hunter Woodall - [@hwoodall30 on Twitter](https://twitter.com/hwoodall30) - Email: hwoodall30@gmail.com
 
-Project Link: [https://github.com/hwoodall30/SignalFlow](https://github.com/hwoodall30/SignalFlow)
+Project Link: [SignalFlow on GitHub](https://github.com/hwoodall30/SignalFlow)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -201,7 +171,7 @@ Project Link: [https://github.com/hwoodall30/SignalFlow](https://github.com/hwoo
 
 ## Acknowledgments
 
-Special Thanks to these awesome articles!
+Resources that have been particularly helpful:
 
 -   [Solid.js](https://www.solidjs.com/)
 -   [Building a Reactive Library from Scratch](https://dev.to/ryansolid/building-a-reactive-library-from-scratch-1i0p)
@@ -210,11 +180,9 @@ Special Thanks to these awesome articles!
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
 [contributors-url]: https://github.com/hwoodall30/SignalFlow/graphs/contributors
 [forks-url]: https://github.com/hwoodall30/SignalFlow/network/members
 [stars-url]: https://github.com/hwoodall30/SignalFlow/stargazers
 [issues-url]: https://github.com/hwoodall30/SignalFlow/issues
-[JavaScriptImage]: ./public/JavaScript.png
 [JavaScriptUrl]: https://developer.mozilla.org/en-US/docs/Learn/Getting_started_with_the_web/JavaScript_basics
