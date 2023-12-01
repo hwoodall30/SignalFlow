@@ -2,6 +2,9 @@ import { signal } from './src/signals/signal';
 import { html } from './src/framework/framework';
 import './style.css';
 
+function Component1() {
+	return html`<div>test</div>`;
+}
 function Component() {
 	const [count, setCount] = signal(0);
 	const [input, setInput] = signal('');
