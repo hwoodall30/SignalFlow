@@ -4,6 +4,23 @@ import './style.css';
 
 function Component() {
 	const [count, setCount] = signal(0);
+
+	return html`<div on:click="${() => setCount(count() + 1)}">${count}</div>`;
+}
+
+function Component1({ count, setCount }) {
+	function incrementCounter() {
+		setCount(count() + 1);
+	}
+
+	return html`<div>
+		${Component()}
+		<div on:click="${incrementCounter}">${count}</div>
+	</div>`;
+}
+
+function Component2() {
+	const [count, setCount] = signal(0);
 	const [input, setInput] = signal('');
 	const [show, setShow] = signal(true);
 	const [array, setArray] = signal([{ name: 'Work' }, { name: 'Clean' }, { name: 'Cook' }]);
@@ -118,9 +135,11 @@ function Component() {
 					>${({ name }) => html`<li on:click="${() => fetchPokemonData(name)}">${name}</li>`}</For
 				></Suspend
 			>
+
+			${Component1({ count, setCount })}
 		</div>
 	`;
 }
 
 const app = document.getElementById('app');
-app.appendChild(Component());
+app.appendChild(Component2());
