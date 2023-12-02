@@ -21,6 +21,25 @@ export function signal(value) {
 	return [read, write, subscriptions];
 }
 
+export function resource({ initialValue, promise, key }) {
+	const [data, setData] = signal(initialValue);
+	const [loading, setLoading] = signal(true);
+	promise
+		.then(async (res) => {
+			const json = await res.json();
+			let data = json;
+			if (key) {
+				const keysArray = key.split('.');
+				data = keysArray.reduce((obj, k) => (obj[k] = obj[k] || {}), json);
+			}
+			setData(data);
+			setLoading(false);
+		})
+		.catch((err) => console.error(err))
+		.finally(() => setLoading(false));
+	return { data, setData, loading };
+}
+
 function cleanup(running) {
 	for (const dep of running.dependencies) dep.delete(running);
 	running.dependencies.clear();
