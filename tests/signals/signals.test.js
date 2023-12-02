@@ -16,8 +16,7 @@ test('Effects', async () => {
 	const fn = vi.fn();
 
 	effect(() => {
-		console.log(count());
-		fn();
+		fn(count());
 	});
 
 	setCount(count() + 1);
