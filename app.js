@@ -1,5 +1,4 @@
 import { signal, resource, html } from './src/signal-flow.js';
-import './style.css';
 
 function Counter() {
 	const [count, setCount] = signal(0);
