@@ -1,5 +1,5 @@
-import { cloneDeep, compareArrays, isDOMElement } from '../helpers/helpers';
-import { effect } from '../signals/signal';
+import { cloneDeep, compareArrays, isDOMElement } from '../helpers/helpers.js';
+import { effect } from '../signals/signal.js';
 
 const idIndexRegex = (id) => new RegExp(`^${id}_([0-9]+)$`);
 

@@ -1,5 +1,4 @@
-import { html } from './src/framework/framework';
-import { signal, resource } from './src/signals/signal';
+import { signal, resource, html } from './src/signal-flow.js';
 import './style.css';
 
 function Counter() {

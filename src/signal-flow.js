@@ -1,3 +1,3 @@
-export * from './framework/framework';
-export * from './signals/signal';
-export * from './helpers/helpers';
+export * from './framework/framework.js';
+export * from './signals/signal.js';
+export * from './helpers/helpers.js';
