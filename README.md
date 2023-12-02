@@ -14,7 +14,7 @@
     <br />
     <a href="https://github.com/hwoodall30/SignalFlow"><strong>Explore the code »</strong></a>
     <br />
-    <a href="https://github.com/hwoodall30/SignalFlow">View Demo</a> ·
+    <a href="https://hwoodall30.github.io/SignalFlow/index.html">View Demo</a> ·
     <a href="https://github.com/hwoodall30/SignalFlow/issues">Report Bug</a> ·
     <a href="https://github.com/hwoodall30/SignalFlow/issues">Request Feature</a>
   </p>
