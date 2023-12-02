@@ -1,6 +1,8 @@
 import { cloneDeep, compareArrays, isDOMElement } from '../helpers/helpers';
 import { effect } from '../signals/signal';
 
+const idIndexRegex = (id) => new RegExp(`^${id}_([0-9]+)$`);
+
 const specialElements = {
 	if: {
 		requiredAttributes: ['condition'],
@@ -15,7 +17,7 @@ const specialElements = {
 		renderChildren: false,
 	},
 	suspend: {
-		requiredAttributes: ['loading'],
+		requiredAttributes: ['loading', 'fallback'],
 		fn: handleSuspend,
 		createFn: () => document.createElement('div'),
 		renderChildren: false,
@@ -23,11 +25,17 @@ const specialElements = {
 };
 
 export function html(strings, ...values) {
-	const fnMap = {};
-	const id = crypto.randomUUID();
+	/* prettier-ignore */
+	const fnMap = {}, domMap = {}, id = crypto.randomUUID();
+
 	const h = strings.reduce((acc, string, i) => {
-		if (typeof values[i] === 'function') fnMap[`${id}_${i}`] = values[i];
-		return acc + string + (typeof values[i] === 'function' ? `${id}_${i}` : values[i] ?? '');
+		if (typeof values[i] === 'function') {
+			fnMap[`${id}_${i}`] = values[i];
+			return acc + string + `${id}_${i}`;
+		} else if (isDOMElement(values[i])) {
+			domMap[`${id}_${i}`] = values[i];
+			return acc + string + `<template component-placeholder="${id}__${i}"></template>`;
+		} else return acc + string + values[i] ?? '';
 	}, '');
 
 	const doc = new DOMParser().parseFromString(h, 'text/html');
@@ -37,6 +45,16 @@ export function html(strings, ...values) {
 
 	const createDOMContext = { result, values, id, fnMap };
 	const resultElement = createDOM(createDOMContext);
+
+	if (Object.keys(domMap)?.length > 0) {
+		for (const [key, value] of Object.entries(domMap)) {
+			const index = key.split('_')[1];
+			const domNode = resultElement.querySelector(`[component-placeholder="${id}__${index}"]`);
+			const parent = domNode.parentNode;
+			parent.replaceChild(value, domNode);
+		}
+	}
+
 	return resultElement;
 }
 
@@ -56,7 +74,7 @@ function parseElement(context) {
 
 	for (const attr of element.attributes) {
 		if (attr.name.startsWith('on:')) result.hasFunction.push(attr.name.split(':')[1]);
-		else if (attr.value.startsWith(id)) result.updateAbleAttributes[attr.name] = attr.value;
+		else if (idIndexRegex(id).test(attr.value)) result.updateAbleAttributes[attr.name] = attr.value;
 		result.attributes[attr.name] = attr.value;
 	}
 
@@ -81,6 +99,7 @@ function createDOM(context) {
 
 	let element;
 	if (specialElements[result.type]) element = specialElements[result.type].createFn();
+	else if (result.type === 'text') element = document.createTextNode(result.content);
 	else element = document.createElement(result.type);
 
 	if (Object.keys(result?.attributes || {}).length > 0) handleAttributes({ ...context, element });
@@ -119,6 +138,8 @@ function handleAttributes(context) {
 function handleIf(context) {
 	const { result, element, fnMap } = context;
 
+	checkRequiredAttributes(result);
+
 	const idKey = result.updateAbleAttributes['condition'];
 	const display = element.style.display;
 	effect(() => {
@@ -130,6 +151,8 @@ function handleIf(context) {
 
 function handleFor(context) {
 	const { result, element, fnMap } = context;
+
+	checkRequiredAttributes(result);
 
 	const childFuncIdKey = result.children[0].content;
 	const childFunc = fnMap[childFuncIdKey];
@@ -153,10 +176,12 @@ function handleFor(context) {
 function handleSuspend(context) {
 	const { result, element, id, fnMap } = context;
 
-	const { loading, fallback } = result.attributes;
-	if (loading && !loading.includes(id))
+	checkRequiredAttributes(result);
+
+	const { loading = '', fallback = '' } = result.attributes;
+	if (!idIndexRegex(id).test(loading))
 		throw new Error('Must pass in a function that returns the loading state (true or false). e.g. () => true');
-	if (fallback && !fallback.includes(id))
+	if (!idIndexRegex(id).test(fallback))
 		throw new Error('Must pass in a function that returns the fallback element. e.g. () => html`<div>Loading...</div>');
 
 	const fallbackReturn = fnMap[fallback]();
@@ -200,3 +225,13 @@ function handleHasFunction({ result, element, fnMap }) {
 		element.addEventListener(event, (e) => fnMap[idKey](e));
 	}
 }
+
+function checkRequiredAttributes(result) {
+	const requiredAttributes = specialElements[result.type]?.requiredAttributes || [];
+
+	for (const attribute of requiredAttributes) {
+		if (!result.attributes[attribute]) throw new Error(`Missing required attribute on <${result.type}>: ${attribute}`);
+	}
+}
+
+export function onMount(cb) {}
