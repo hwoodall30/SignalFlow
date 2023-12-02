@@ -55,6 +55,8 @@ h1 {
 	text-align: center;
 	color: whitesmoke;
 	font-size: clamp(1rem, 5vw, 2rem);
+	text-decoration: underline;
+	text-underline-offset: 8px;
 }
 
 button {
@@ -77,11 +79,16 @@ button {
 	width: 100%;
 }
 
+.counter button {
+	width: 100%;
+}
+
 .counter > div:not(.nested_counter) {
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	gap: 10px;
+	width: 100%;
 }
 
 .nested_counter {
