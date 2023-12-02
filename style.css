@@ -156,6 +156,8 @@ button {
 
 .fetching_data {
 	width: 100%;
+	display: grid;
+	gap: 8px;
 }
 
 .fetching_data > div {

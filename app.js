@@ -1,4 +1,4 @@
-import { signal, resource, html } from './src/signal-flow.js';
+import { signal, resource, html, effect } from './src/signal-flow.js';
 
 function Counter() {
 	const [count, setCount] = signal(0);
@@ -89,9 +89,13 @@ function Loader() {
 	</svg>`;
 }
 
+async function fetchPokemon() {
+	await new Promise((resolve) => setTimeout(resolve, 2000));
+	return fetch('https://pokeapi.co/api/v2/pokemon?limit=100');
+}
 function fetchPokemonList() {
 	const { data, loading } = resource({
-		promise: fetch('https://pokeapi.co/api/v2/pokemon?limit=50'),
+		promise: fetchPokemon(),
 		key: 'results',
 		initialValue: [],
 	});
