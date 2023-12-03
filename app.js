@@ -93,25 +93,52 @@ async function fetchPokemon() {
 	await new Promise((resolve) => setTimeout(resolve, 2000));
 	return fetch('https://pokeapi.co/api/v2/pokemon?limit=100');
 }
-function fetchPokemonList() {
+
+function PokemonList() {
 	const { data, loading } = resource({
 		promise: fetchPokemon(),
 		key: 'results',
 		initialValue: [],
 	});
 
+	const [pokemon, setPokemon] = signal(null);
+	const [pokemonLoading, setPokemonLoading] = signal(false);
+
+	async function fetchPokemonDetails(name) {
+		setPokemonLoading(true);
+		await new Promise((resolve) => setTimeout(resolve, 2000));
+		const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
+		const data = await res.json();
+		setPokemon(data);
+		setPokemonLoading(false);
+	}
+
 	return html`
 		<div class="fetching_data">
 			<h1>Fetching Data</h1>
 			<Suspend loading=${loading} fallback=${Loader}>
-				<For each=${data}> ${(pokemon) => html`<li>${pokemon.name}</li>`} </For>
+				<For each=${data}>
+					${(pokemon) => html`<li on:click=${() => fetchPokemonDetails(pokemon.name)}>${pokemon.name}</li>`}
+				</For>
 			</Suspend>
+			${PokemonDetails({ pokemon, pokemonLoading })}
 		</div>
 	`;
 }
 
+function PokemonDetails({ pokemon, pokemonLoading }) {
+	return html`
+		<Suspend loading=${pokemonLoading} fallback=${Loader}>
+			<If class="pokemon_details" condition=${() => Object.keys(pokemon() || {})?.length > 0}>
+				<h1>${() => pokemon()?.name}</h1>
+				<img src=${() => pokemon()?.sprites?.front_default} />
+			</If>
+		</Suspend>
+	`;
+}
+
 function AppContent() {
-	return html`<div class="app_content">${Counter()} ${List()} ${fetchPokemonList()}</div>`;
+	return html`<div class="app_content">${Counter()} ${List()} ${PokemonList()}</div>`;
 }
 
 const app = document.getElementById('app');
