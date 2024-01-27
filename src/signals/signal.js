@@ -1,4 +1,4 @@
-const context = [];
+export const context = [];
 
 function subscribe(running, subscriptions) {
 	subscriptions.add(running);
@@ -16,7 +16,7 @@ export function signal(value) {
 
 	const write = (nextValue) => {
 		value = typeof nextValue === 'function' ? nextValue(value) : nextValue;
-		[...subscriptions].forEach((sub) => sub.execute(value));
+		[...subscriptions].forEach((sub) => sub.execute());
 	};
 	return [read, write, subscriptions];
 }
@@ -62,13 +62,13 @@ function addChildEffects(effect) {
 
 export function effect(fn) {
 	const effect = {
-		execute(changed = []) {
+		execute() {
 			cleanupChildEffects(effect);
 			cleanup(effect);
 			context.push(effect);
 			addChildEffects(effect);
 			try {
-				fn(changed);
+				fn();
 			} finally {
 				context.pop();
 			}

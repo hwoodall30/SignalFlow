@@ -1,4 +1,4 @@
-import { signal, resource, html } from './src/signal-flow.js';
+import { signal, resource, html, store } from './src/signal-flow.js';
 
 function Counter() {
 	const [count, setCount] = signal(0);
@@ -137,8 +137,36 @@ function PokemonDetails({ pokemon, pokemonLoading }) {
 	`;
 }
 
+function Store() {
+	const [state, setState] = store({
+		counter: 2,
+		list: [
+			{ id: 23, title: 'Birds' },
+			{ id: 27, title: 'Fish' },
+		],
+	});
+
+	function increment() {
+		setState('counter', (c) => c + 1);
+	}
+
+	function list() {
+		setState('list', (prevList) => [...prevList, { id: 43, title: 'Marsupials' }]);
+	}
+
+	return html`<div class="counter">
+		<h1>Store</h1>
+		<p>${() => state.counter}</p>
+		<pre>${() => JSON.stringify(state, null, 2)}</pre>
+		<div>
+			<button on:click=${increment}>Increment</button>
+			<button on:click=${list}>Update List</button>
+		</div>
+	</div>`;
+}
+
 function AppContent() {
-	return html`<div class="app_content">${Counter()} ${List()} ${PokemonList()}</div>`;
+	return html`<div class="app_content">${Counter()} ${List()} ${PokemonList()} ${Store()}</div>`;
 }
 
 const app = document.getElementById('app');
