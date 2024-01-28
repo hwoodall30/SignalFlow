@@ -228,11 +228,7 @@ export function updatePath(current, path, traversed = []) {
 		mergeStoreNode(prev, value);
 	} else setProperty(current, part, value);
 }
-/**
- * creates a reactive store that can be read through a proxy object and written with a setter function
- *
- * @description https://www.solidjs.com/docs/latest/api#createstore
- */
+
 export function store(...[store]) {
 	const unwrappedStore = unwrap(store || {});
 	const isArray = Array.isArray(unwrappedStore);
