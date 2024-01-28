@@ -1,4 +1,4 @@
-import { context, signal } from './signal';
+import { context, signal } from './signal.js';
 
 export const $RAW = Symbol('store-raw'),
 	$NODE = Symbol('store-node'),
