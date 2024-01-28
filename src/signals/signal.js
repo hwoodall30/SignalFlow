@@ -41,17 +41,13 @@ export function resource({ initialValue, promise, key }) {
 }
 
 function cleanup(running) {
-	for (const dep of running.dependencies) dep.delete(running);
-	running.dependencies.clear();
-}
-
-function cleanupChildEffects(running) {
-	if (running.childEffects.size === 0) return;
-	for (const child of running.childEffects) {
-		cleanup(child);
-		cleanupChildEffects(child);
+	for (const dep of running.dependencies) {
+		if (running.childEffects.size > 0) {
+			for (const child of running.childEffects) cleanup(child);
+		}
+		dep.delete(running);
 	}
-	running.childEffects.clear();
+	running.dependencies.clear();
 }
 
 function addChildEffects(effect) {
@@ -63,7 +59,6 @@ function addChildEffects(effect) {
 export function effect(fn) {
 	const effect = {
 		execute() {
-			cleanupChildEffects(effect);
 			cleanup(effect);
 			context.push(effect);
 			addChildEffects(effect);
