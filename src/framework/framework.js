@@ -1,25 +1,25 @@
-import { cloneDeep, compareArrays, isDOMElement } from '../helpers/helpers.js';
-import { effect } from '../signals/signal.js';
+import { cloneDeep, compareArrays, isDOMElement } from "../helpers/helpers.js";
+import { effect } from "../signal-flow.js";
 
 const idIndexRegex = (id) => new RegExp(`^${id}_([0-9]+)$`);
 
 const specialElements = {
 	if: {
-		requiredAttributes: ['condition'],
+		requiredAttributes: ["condition"],
 		fn: handleIf,
-		createFn: () => document.createElement('div'),
+		createFn: () => document.createElement("div"),
 		renderChildren: true,
 	},
 	for: {
-		requiredAttributes: ['each'],
+		requiredAttributes: ["each"],
 		fn: handleFor,
-		createFn: () => document.createElement('ul'),
+		createFn: () => document.createElement("ul"),
 		renderChildren: false,
 	},
 	suspend: {
-		requiredAttributes: ['loading', 'fallback'],
+		requiredAttributes: ["loading", "fallback"],
 		fn: handleSuspend,
-		createFn: () => document.createElement('div'),
+		createFn: () => document.createElement("div"),
 		renderChildren: false,
 	},
 };
@@ -29,16 +29,16 @@ export function html(strings, ...values) {
 	const fnMap = {}, domMap = {}, id = crypto.randomUUID();
 
 	const h = strings.reduce((acc, string, i) => {
-		if (typeof values[i] === 'function') {
+		if (typeof values[i] === "function") {
 			fnMap[`${id}_${i}`] = values[i];
 			return acc + string + `${id}_${i}`;
 		} else if (isDOMElement(values[i])) {
 			domMap[`${id}_${i}`] = values[i];
 			return acc + string + `<template component-placeholder="${id}__${i}"></template>`;
-		} else return acc + string + values[i] ?? '';
-	}, '');
+		} else return acc + string + values[i] ?? "";
+	}, "");
 
-	const doc = new DOMParser().parseFromString(h, 'text/html');
+	const doc = new DOMParser().parseFromString(h, "text/html");
 
 	const parseElementContext = { element: doc.body.firstChild, id, fnMap };
 	const result = parseElement(parseElementContext);
@@ -48,7 +48,7 @@ export function html(strings, ...values) {
 
 	if (Object.keys(domMap)?.length > 0) {
 		for (const [key, value] of Object.entries(domMap)) {
-			const index = key.split('_')[1];
+			const index = key.split("_")[1];
 			const domNode = resultElement.querySelector(`[component-placeholder="${id}__${index}"]`);
 			const parent = domNode.parentNode;
 			parent.replaceChild(value, domNode);
@@ -59,7 +59,8 @@ export function html(strings, ...values) {
 }
 
 function parseElement(context) {
-	if (context.element.nodeName.toLowerCase() === 'svg') throw new Error('SVG elements are not supported by the html function');
+	if (context.element.nodeName.toLowerCase() === "svg")
+		throw new Error("SVG elements are not supported by the html function");
 
 	const { element, id } = context;
 
@@ -73,17 +74,17 @@ function parseElement(context) {
 	};
 
 	for (const attr of element.attributes) {
-		if (attr.name.startsWith('on:')) result.hasFunction.push(attr.name.split(':')[1]);
+		if (attr.name.startsWith("on:")) result.hasFunction.push(attr.name.split(":")[1]);
 		else if (idIndexRegex(id).test(attr.value)) result.updateAbleAttributes[attr.name] = attr.value;
 		result.attributes[attr.name] = attr.value;
 	}
 
 	for (const child of element.childNodes) {
 		if (child.nodeType === 1) result.children.push(parseElement({ ...context, element: child }));
-		else if (child.nodeType === 3 && child.nodeValue.trim() !== '') {
+		else if (child.nodeType === 3 && child.nodeValue.trim() !== "") {
 			result.children.push({
-				type: 'text',
-				updateAbleContent: child.nodeValue.match(new RegExp(`${id}_\\d+`, 'g')),
+				type: "text",
+				updateAbleContent: child.nodeValue.match(new RegExp(`${id}_\\d+`, "g")),
 				content: child.nodeValue.trim(),
 			});
 		}
@@ -95,11 +96,11 @@ function parseElement(context) {
 function createDOM(context) {
 	const { result } = context;
 
-	if (result.type === 'text' && !result.updateAbleContent) return document.createTextNode(result.content);
+	if (result.type === "text" && !result.updateAbleContent) return document.createTextNode(result.content);
 
 	let element;
 	if (specialElements[result.type]) element = specialElements[result.type].createFn();
-	else if (result.type === 'text') element = document.createTextNode(result.content);
+	else if (result.type === "text") element = document.createTextNode(result.content);
 	else element = document.createElement(result.type);
 
 	if (Object.keys(result?.attributes || {}).length > 0) handleAttributes({ ...context, element });
@@ -127,8 +128,8 @@ function handleAttributes(context) {
 			const idKey = result.updateAbleAttributes[key];
 			effect(() => {
 				const value = fnMap[idKey]();
-				if (key === 'value') element.value = value;
-				if (result.type === 'for' && key === 'each') return;
+				if (key === "value") element.value = value;
+				if (result.type === "for" && key === "each") return;
 				element.setAttribute(key, value);
 			});
 		} else element.setAttribute(key, value);
@@ -140,12 +141,12 @@ function handleIf(context) {
 
 	checkRequiredAttributes(result);
 
-	const idKey = result.updateAbleAttributes['condition'];
+	const idKey = result.updateAbleAttributes["condition"];
 	const display = element.style.display;
 	effect(() => {
 		fnMap[idKey]()
-			? ((element.style.display = display || ''), (element.style.position = 'static'))
-			: ((element.style.display = 'none'), (element.style.position = 'absolute'));
+			? ((element.style.display = display || ""), (element.style.position = "static"))
+			: ((element.style.display = "none"), (element.style.position = "absolute"));
 	});
 }
 
@@ -156,16 +157,16 @@ function handleFor(context) {
 
 	const childFuncIdKey = result.children[0].content;
 	const childFunc = fnMap[childFuncIdKey];
-	const idKey = result.updateAbleAttributes['each'];
+	const idKey = result.updateAbleAttributes["each"];
 	let currentArray = [];
 	effect(() => {
 		const array = fnMap[idKey]();
 		const changes = compareArrays(currentArray, array);
 
 		for (const change of changes) {
-			if (change.type === 'added') element.appendChild(childFunc(change.value, change.index));
-			else if (change.type === 'deleted') element.removeChild(element.children[change.index]);
-			else if (change.type === 'modified')
+			if (change.type === "added") element.appendChild(childFunc(change.value, change.index));
+			else if (change.type === "deleted") element.removeChild(element.children[change.index]);
+			else if (change.type === "modified")
 				element.replaceChild(childFunc(change.value, change.index), element.children[change.index]);
 		}
 
@@ -178,26 +179,30 @@ function handleSuspend(context) {
 
 	checkRequiredAttributes(result);
 
-	const { loading = '', fallback = '' } = result.attributes;
+	const { loading = "", fallback = "" } = result.attributes;
 	if (!idIndexRegex(id).test(loading))
-		throw new Error('Must pass in a function that returns the loading state (true or false). e.g. () => true');
+		throw new Error(
+			"Must pass in a function that returns the loading state (true or false). e.g. () => true",
+		);
 	if (!idIndexRegex(id).test(fallback))
-		throw new Error('Must pass in a function that returns the fallback element. e.g. () => html`<div>Loading...</div>');
+		throw new Error(
+			"Must pass in a function that returns the fallback element. e.g. () => html`<div>Loading...</div>",
+		);
 
 	const fallbackReturn = fnMap[fallback]();
 
 	let fallbackNode;
 	if (isDOMElement(fallbackReturn)) fallbackNode = fallbackReturn;
 	else {
-		fallbackNode = document.createElement('div');
+		fallbackNode = document.createElement("div");
 		fallbackNode.innerHTML = fallbackReturn;
 	}
 
-	element.removeAttribute('fallback');
+	element.removeAttribute("fallback");
 
 	effect(() => {
-		const isLoading = typeof loading.includes(id) ? fnMap[loading]() : loading === 'false' ? false : true;
-		element.innerHTML = '';
+		const isLoading = typeof loading.includes(id) ? fnMap[loading]() : loading === "false" ? false : true;
+		element.innerHTML = "";
 		if (isLoading) element.appendChild(fallbackNode);
 		else {
 			if (element.contains(fallbackNode)) element.removeChild(fallbackNode);
@@ -213,9 +218,12 @@ function handleSuspend(context) {
 function handleUpdateableContent({ result, element, fnMap }) {
 	const updateAbleContent = result?.updateAbleContent || [];
 	effect(() => {
-		element.textContent = result.content.replace(new RegExp(`${updateAbleContent.join('|')}`, 'g'), (match) => {
-			return fnMap[match]();
-		});
+		element.textContent = result.content.replace(
+			new RegExp(`${updateAbleContent.join("|")}`, "g"),
+			(match) => {
+				return fnMap[match]();
+			},
+		);
 	});
 }
 
@@ -230,7 +238,8 @@ function checkRequiredAttributes(result) {
 	const requiredAttributes = specialElements[result.type]?.requiredAttributes || [];
 
 	for (const attribute of requiredAttributes) {
-		if (!result.attributes[attribute]) throw new Error(`Missing required attribute on <${result.type}>: ${attribute}`);
+		if (!result.attributes[attribute])
+			throw new Error(`Missing required attribute on <${result.type}>: ${attribute}`);
 	}
 }
 
