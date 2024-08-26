@@ -1,4 +1,4 @@
-import { signal, resource, html, store } from './src/signal-flow.js';
+import { signal, resource, html } from "./src/signal-flow.js";
 
 function Counter() {
 	const [count, setCount] = signal(0);
@@ -25,19 +25,19 @@ function NestedCounter({ count }) {
 	return html`<div class="nested_counter">
 		<h1>Nested Counter (Using Props)</h1>
 		<If condition=${show}> ${count} </If>
-		<button on:click=${toggle}>${() => (show() ? 'Hide' : 'Show')}</button>
+		<button on:click=${toggle}>${() => (show() ? "Hide" : "Show")}</button>
 	</div>`;
 }
 
 function List() {
 	const [list, setList] = signal([]);
-	const [input, setInput] = signal('');
+	const [input, setInput] = signal("");
 
 	function addItem(e) {
 		e.preventDefault();
-		if (input() === '') return;
+		if (input() === "") return;
 		setList([...list(), { name: input() }]);
-		setInput('');
+		setInput("");
 	}
 
 	function removeItem(index) {
@@ -91,13 +91,13 @@ function Loader() {
 
 async function fetchPokemon() {
 	await new Promise((resolve) => setTimeout(resolve, 2000));
-	return fetch('https://pokeapi.co/api/v2/pokemon?limit=100');
+	return fetch("https://pokeapi.co/api/v2/pokemon?limit=100");
 }
 
 function PokemonList() {
 	const { data, loading } = resource({
 		promise: fetchPokemon(),
-		key: 'results',
+		key: "results",
 		initialValue: [],
 	});
 
@@ -137,37 +137,9 @@ function PokemonDetails({ pokemon, pokemonLoading }) {
 	`;
 }
 
-function Store() {
-	const [state, setState] = store({
-		counter: 2,
-		list: [
-			{ id: 23, title: 'Birds' },
-			{ id: 27, title: 'Fish' },
-		],
-	});
-
-	function increment() {
-		setState('counter', (c) => c + 1);
-	}
-
-	function list() {
-		setState('list', (prevList) => [...prevList, { id: 43, title: 'Marsupials' }]);
-	}
-
-	return html`<div class="counter">
-		<h1>Store</h1>
-		<p>${() => state.counter}</p>
-		<pre>${() => JSON.stringify(state, null, 2)}</pre>
-		<div>
-			<button on:click=${increment}>Increment</button>
-			<button on:click=${list}>Update List</button>
-		</div>
-	</div>`;
-}
-
 function AppContent() {
-	return html`<div class="app_content">${Counter()} ${List()} ${PokemonList()} ${Store()}</div>`;
+	return html`<div class="app_content">${Counter()} ${List()} ${PokemonList()}</div>`;
 }
 
-const app = document.getElementById('app');
+const app = document.getElementById("app");
 app.appendChild(AppContent());
